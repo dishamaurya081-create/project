@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindCare Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:white;
+}
+
+h1{text-align:center;}
+
+.dashboard{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(350px,1fr));
+    gap:20px;
+    padding:20px;
+}
+
+.card{
+    background:rgba(255,255,255,0.15);
+    padding:20px;
+    border-radius:15px;
+    text-align:center;
+}
+
+.mood-buttons{
+    display:flex;
+    justify-content:center;
+    gap:15px;
+    margin-bottom:10px;
+}
+
+button{
+    padding:8px 18px;
+    border:none;
+    border-radius:20px;
+    cursor:pointer;
+    background:white;
+    color:#764ba2;
+    font-size:16px;
+}
+
+textarea{
+    width:95%;
+    height:80px;
+    border-radius:10px;
+    border:none;
+    padding:10px;
+}
+
+.circle-wrapper{
+    position:relative;
+    width:200px;
+    height:200px;
+    margin:auto;
+}
+
+.center-text{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:22px;
+    font-weight:bold;
+}
+
+.exercise-box{
+    margin-top:10px;
+    padding:10px;
+    background:rgba(0,0,0,0.2);
+    border-radius:10px;
+    font-size:14px;
+}
+
+.history-item{
+    font-size:13px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌿 MindCare Pro</h1>
+
+<div class="dashboard">
+
+<!-- MOOD SECTION -->
+<div class="card">
+<h2>How are you feeling?</h2>
+
+<div class="mood-buttons">
+<button onclick="logMood('Happy')">😊</button>
+<button onclick="logMood('Sad')">😔</button>
+<button onclick="logMood('Angry')">😡</button>
+<button onclick="logMood('Anxious')">😰</button>
+</div>
+
+<div id="tip"></div>
+
+<div id="exerciseBox" class="exercise-box" style="display:none;">
+<b>Recommended Exercise:</b>
+<div id="exerciseText"></div>
+</div>
+</div>
+
+<!-- DOUGHNUT + PERCENT -->
+<div class="card">
+<h2>Today's Emotional Overview</h2>
+
+<div class="circle-wrapper">
+<canvas id="circleChart"></canvas>
+<div class="center-text" id="centerText">0%</div>
+</div>
+
+<div id="dominantMood"></div>
+</div>
+
+<!-- LINE GRAPH -->
+<div class="card">
+<h2>Mood Trend</h2>
+<canvas id="lineChart"></canvas>
+</div>
+
+<!-- HISTORY -->
+<div class="card">
+<h2>Mood History</h2>
+<div id="history"></div>
+</div>
+
+<!-- JOURNAL -->
+<div class="card">
+<h2>Journal</h2>
+<textarea id="journal"></textarea><br>
+<button onclick="saveJournal()">Save</button>
+<div id="journalList"></div>
+</div>
+
+<!-- RESET -->
+<div class="card">
+<button onclick="resetAll()">Reset All Data</button>
+</div>
+
+</div>
+
+<script>
+const moodInfo={
+Happy:{score:90,tip:"Keep spreading positivity 🌟",exercise:"Write 3 things you're grateful for."},
+Sad:{score:40,tip:"It’s okay to rest.",exercise:"Write your feelings for 5 minutes."},
+Angry:{score:50,tip:"Pause before reacting.",exercise:"Breathe in 4s, hold 4s, exhale 6s."},
+Anxious:{score:45,tip:"Ground yourself.",exercise:"5-4-3-2-1 grounding technique."}
+};
+
+let circleChart,lineChart;
+
+function logMood(mood){
+document.getElementById("tip").innerText=moodInfo[mood].tip;
+document.getElementById("exerciseBox").style.display="block";
+document.getElementById("exerciseText").innerText=moodInfo[mood].exercise;
+
+let moods=JSON.parse(localStorage.getItem("moods"))||[];
+moods.push({mood:mood,date:new Date().toLocaleString(),score:moodInfo[mood].score});
+localStorage.setItem("moods",JSON.stringify(moods));
+
+updateDashboard();
+}
+
+function updateDashboard(){
+let moods=JSON.parse(localStorage.getItem("moods"))||[];
+displayHistory();
+
+let today=new Date().toDateString();
+let todayMoods=moods.filter(m=>new Date(m.date).toDateString()===today);
+
+if(todayMoods.length===0)return;
+
+let total=0;
+let count={Happy:0,Sad:0,Angry:0,Anxious:0};
+
+todayMoods.forEach(m=>{
+total+=m.score;
+count[m.mood]++;
+});
+
+let avg=Math.round(total/todayMoods.length);
+document.getElementById("centerText").innerText=avg+"%";
+
+let dominant=Object.keys(count).reduce((a,b)=>count[a]>count[b]?a:b);
+document.getElementById("dominantMood").innerText="Dominant Mood: "+dominant;
+
+if(circleChart) circleChart.destroy();
+circleChart=new Chart(document.getElementById("circleChart"),{
+type:"doughnut",
+data:{
+labels:["Happy","Sad","Angry","Anxious"],
+datasets:[{
+data:[count.Happy,count.Sad,count.Angry,count.Anxious],
+backgroundColor:["#00e676","#ff5252","#ff9800","#40c4ff"]
+}]
+},
+options:{
+    cutout:"75%",
+    plugins:{legend:{display:false}}
+}});
+
+updateLineGraph(moods);
+}
+
+function updateLineGraph(moods){
+if(lineChart) lineChart.destroy();
+
+lineChart=new Chart(document.getElementById("lineChart"),{
+type:"line",
+data:{
+labels:moods.map(m=>m.date),
+datasets:[{
+label:"Mood Score",
+data:moods.map(m=>m.score),
+borderColor:"#000",
+backgroundColor:"rgba(0,0,0,0.1)",
+fill:true,
+tension:0.3
+}]
+},
+options:{
+plugins:{
+legend:{
+labels:{
+color:"#000"   // legend text color
+}
+}
+},
+scales:{
+x:{
+ticks:{color:"#000"}  // x-axis text
+},
+y:{
+ticks:{color:"#000"}  // y-axis text
+}
+}
+}
+});
+}
+
+function displayHistory(){
+let moods=JSON.parse(localStorage.getItem("moods"))||[];
+let div=document.getElementById("history");
+div.innerHTML="";
+moods.slice(-5).reverse().forEach(m=>{
+div.innerHTML+=`<div class="history-item">${m.mood} - ${m.date}</div>`;
+});
+}
+
+function saveJournal(){
+let text=document.getElementById("journal").value.trim();
+if(text==="") return;
+
+let journals=JSON.parse(localStorage.getItem("journals"))||[];
+journals.push({text:text,date:new Date().toLocaleString()});
+localStorage.setItem("journals",JSON.stringify(journals));
+
+document.getElementById("journal").value="";
+displayJournals();
+}
+
+function displayJournals(){
+let journals=JSON.parse(localStorage.getItem("journals"))||[];
+let list=document.getElementById("journalList");
+list.innerHTML="";
+journals.slice(-5).reverse().forEach(j=>{
+list.innerHTML+=`<div>${j.text}<br><small>${j.date}</small></div>`;
+});
+}
+
+function resetAll(){
+localStorage.clear();
+location.reload();
+}
+
+updateDashboard();
+displayJournals();
+</script>
+
+</body>
+</html>
