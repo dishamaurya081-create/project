@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Momentum</title>
+  <meta charset="UTF-8">
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;       color: white;
+      padding: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #38bdf8;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: auto;
+      background: #1e293b;
+      padding: 25px;
+      border-radius: 10px;
+    }
+
+    select, input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+    }
+
+    button {
+      background: #38bdf8;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0ea5e9;
+    }
+
+    .task {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #334155;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 5px;
+    }
+
+    .task input {
+      width: 18px;
+      height: 18px;
+    }
+
+    .day-title {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #22d3ee;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      background: #475569;
+      border-radius: 20px;
+      margin-top: 15px;
+      height: 20px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #22c55e;
+      border-radius: 20px;
+      transition: 0.4s;
+    }
+
+    .streak {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #facc15;
+    }
+
+    .reset-btn {
+      background: #ef4444;
+      color: white;
+    }
+
+  </style>
+</head>
+<body>
+
+<h1>Momentum - Programming Planner</h1>
+
+<div class="container">
+
+  <label>Select Language</label>
+  <select id="language">
+    <option>Python</option>
+    <option>Java</option>
+    <option>C++</option>
+    <option>JavaScript</option>
+  </select>
+
+  <label>Deadline</label>
+  <input type="date" id="deadline">
+
+  <button onclick="generatePlan()">Generate Plan</button>
+  <button onclick="recalculatePlan()">Recalculate Remaining</button>
+  <button class="reset-btn" onclick="resetAll()">Reset All</button>
+
+  <div id="daysInfo"></div>
+
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div id="progressText"></div>
+  <div class="streak" id="streak"></div>
+
+  <div id="output"></div>
+
+</div>
+
+<script>
+
+const roadmaps = {
+  Python: ["Basics","Data Types","Control Flow","Functions","OOP","File Handling","Modules","Error Handling","Libraries","Mini Project","Final Project"],
+  Java: ["Basics","OOP","Collections","Exception Handling","Multithreading","JDBC","Spring Intro","Mini Project","Final Project"],
+  "C++": ["Basics","Pointers","OOP","STL","Memory Management","Competitive Basics","Mini Project","Final Project"],
+  JavaScript: ["Basics","DOM","ES6","Async JS","APIs","React","Node","Full Stack Project"]
+};
+
+function generatePlan() {
+
+  const language = document.getElementById("language").value;
+  const deadlineValue = document.getElementById("deadline").value;
+
+  if (!deadlineValue) {
+    alert("Select deadline");
+    return;
+  }
+
+  const deadline = new Date(deadlineValue);
+  const today = new Date();
+
+  const totalDays = Math.ceil((deadline - today) / (1000*60*60*24));
+
+  if (totalDays <= 0) {
+    alert("Deadline must be future date");
+    return;
+  }
+
+  localStorage.setItem("language", language);
+  localStorage.setItem("deadline", deadlineValue);
+
+  document.getElementById("daysInfo").innerHTML =
+    `Total Days Available: ${totalDays}`;
+
+  createSchedule(roadmaps[language], totalDays);
+}
+
+function createSchedule(topics, totalDays) {
+
+  let output = "";
+  const tasksPerDay = Math.ceil(topics.length / totalDays);
+  let index = 0;
+
+  for (let day = 1; day <= totalDays; day++) {
+
+    if (index >= topics.length) break;
+
+    output += `<div class="day-title">Day ${day}</div>`;
+
+    for (let i = 0; i < tasksPerDay; i++) {
+
+      if (index >= topics.length) break;
+
+      const taskId = `task-${topics[index]}`;
+
+      output += `
+        <div class="task">
+          <input type="checkbox" id="${taskId}" onchange="updateProgress()">
+          <label for="${taskId}">${topics[index]}</label>
+        </div>
+      `;
+
+      index++;
+    }
+  }
+
+  document.getElementById("output").innerHTML = output;
+
+  loadProgress();
+  updateProgress();
+}
+
+function updateProgress() {
+
+  const checkboxes = document.querySelectorAll("input[type='checkbox']");
+  let completed = 0;
+
+  checkboxes.forEach(box => {
+    localStorage.setItem(box.id, box.checked);
+    if (box.checked) completed++;
+  });
+
+  const percent = checkboxes.length
+    ? Math.floor((completed / checkboxes.length) * 100)
+    : 0;
+
+  document.getElementById("progressBar").style.width = percent + "%";
+  document.getElementById("progressText").innerHTML = `Progress: ${percent}%`;
+
+  updateXP(completed);
+  updateStreak(completed);
+}
+
+function updateXP(completedCount) {
+
+  const xp = completedCount * 10;
+  const level = Math.floor(xp / 50) + 1;
+
+  localStorage.setItem("xp", xp);
+  localStorage.setItem("level", level);
+
+  document.getElementById("progressText").innerHTML +=
+    `<br>⭐ Level: ${level} | XP: ${xp}`;
+}
+
+function updateStreak(completedCount) {
+
+  if (completedCount === 0) return;
+
+  const today = new Date();
+  const todayStr = today.toDateString();
+
+  const lastDateStr = localStorage.getItem("lastCompletionDate");
+  let streak = parseInt(localStorage.getItem("streak") || 0);
+
+  if (!lastDateStr) {
+    // First ever completion
+    streak = 1;
+  } else {
+    const lastDate = new Date(lastDateStr);
+    const diffDays = Math.floor((today - lastDate) / (1000*60*60*24));
+
+    if (diffDays === 1) {
+      // Continued streak
+      streak += 1;
+    } else if (diffDays > 1) {
+      // Missed days → reset streak
+      streak = 1;
+    }
+    // if diffDays === 0 → same day → do nothing
+  }
+
+  localStorage.setItem("streak", streak);
+  localStorage.setItem("lastCompletionDate", todayStr);
+
+  document.getElementById("streak").innerHTML =
+    `🔥 Streak: ${streak} days`;
+}
+
+function recalculatePlan() {
+
+  const language = localStorage.getItem("language");
+  const deadlineValue = localStorage.getItem("deadline");
+
+  if (!language || !deadlineValue) {
+    alert("Generate plan first");
+    return;
+  }
+
+  const topics = roadmaps[language];
+
+  const remaining = topics.filter(topic =>
+    localStorage.getItem(`task-${topic}`) !== "true"
+  );
+
+  const deadline = new Date(deadlineValue);
+  const today = new Date();
+
+  const totalDays = Math.ceil((deadline - today) / (1000*60*60*24));
+
+  createSchedule(remaining, totalDays);
+}
+
+function loadProgress() {
+
+  const checkboxes = document.querySelectorAll("input[type='checkbox']");
+  let completed = 0;
+
+  checkboxes.forEach(box => {
+    if (localStorage.getItem(box.id) === "true") {
+      box.checked = true;
+      completed++;
+    }
+  });
+
+  updateXP(completed);
+
+  document.getElementById("streak").innerHTML =
+    `🔥 Streak: ${localStorage.getItem("streak") || 0} days`;
+}
+
+function resetAll() {
+  localStorage.clear();
+  document.getElementById("output").innerHTML = "";
+  document.getElementById("progressBar").style.width = "0%";
+  document.getElementById("progressText").innerHTML = "";
+  document.getElementById("streak").innerHTML = "";
+  document.getElementById("daysInfo").innerHTML = "";
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Airia Chat Test</title>
+  </head>
+  <body>
+
+    <h2>AURA Career Assistant</h2>
+
+    <div id="root"></div>
+
+    <script type="module">
+        import AiriaChat from "https://embed-api.airia.ai/get-chat-embed.js"
+
+        AiriaChat.init({
+            pipelineId: "e9f9a3ca-265a-443b-afc8-7b341da5fe6b",
+            apiKey: "YOUR_API_KEY_HERE",
+            apiUrl: "https://embed-api.airia.ai",
+            greeting: "Hello! How can I assist you today?",
+            autoOpen: true
+        })
+    </script>
+
+  </body>
+</html>

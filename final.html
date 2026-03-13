@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Algorithm Mentor</title>
+    <link rel="stylesheet" href="final.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <h1>Algorithm Mentor</h1>
+    <ul>
+        <li><a href="#">Learn</a></li>
+        <li><a href="#">Practice</a></li>
+        <li><a href="#">Mentor</a></li>
+    </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <h2>Learn Algorithms Like a Pro</h2>
+    <p>Practice. Think. Improve — without being spoon-fed.</p>
+    <button class="primary-btn">Start Learning</button>
+</section>
+
+<!-- PRACTICE AREA -->
+<section class="practice">
+    <h2>Practice Coding</h2>
+
+    <div class="editor-container">
+
+        <!-- LEFT: CODE EDITOR -->
+        <div class="code-editor">
+            <h3>C++ Code</h3>
+            <textarea>#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    // Write your code here
+    return 0;
+}</textarea>
+        </div>
+
+        <!-- RIGHT: INPUT + OUTPUT -->
+        <div class="io-panel">
+            <h3>Custom Input</h3>
+            <textarea class="input-box" placeholder="Enter input here..."></textarea>
+
+            <h3>Output</h3>
+            <textarea class="output-box" placeholder="Output will appear here..." readonly></textarea>
+        </div>
+
+    </div>
+
+    <div class="buttons">
+        <button class="run">Run Code</button>
+        <button class="hint">Get Hint</button>
+        <button class="reveal">Reveal Reference Code</button>
+    </div>
+
+    <!-- FEEDBACK -->
+    <div class="feedback-box hidden" id="feedback">
+        ✔ Code executed successfully. Think about optimizing further.
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <p>Algorithm Mentor • Built for learners</p>
+</footer>
+
+<script>
+document.querySelector(".run").addEventListener("click", () => {
+    const feedback = document.getElementById("feedback");
+    feedback.classList.remove("hidden");
+});
+</script>
+
+</body>
+</html>

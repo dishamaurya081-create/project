@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindCare Pro - You’re Not Alone</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root {
+    --bg: linear-gradient(to right, #667eea, #764ba2);
+    --card: rgba(255,255,255,0.1);
+    --text: white;
+}
+
+body.dark {
+    --bg: #121212;
+    --card: #1e1e1e;
+    --text: #f5f5f5;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    transition: 0.4s;
+}
+
+h1,p{text-align:center;}
+
+.dashboard{
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(320px,1fr));
+    gap:20px;
+    padding:20px;
+}
+
+.container {
+    background: var(--card);
+    padding: 20px;
+    border-radius: 15px;
+}
+
+button {
+    padding: 8px 18px;
+    margin: 6px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    background: white;
+    color: #764ba2;
+}
+
+textarea {
+    width: 95%;
+    height: 70px;
+    border-radius: 10px;
+    padding: 10px;
+    border: none;
+    margin-top: 10px;
+}
+
+.toggle {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+}
+
+/* Circular meter */
+.progress-ring{
+    width:150px;
+    height:150px;
+}
+.progress-ring circle{
+    fill:none;
+    stroke-width:10;
+}
+.bg{stroke:rgba(255,255,255,0.2);}
+.progress{
+    stroke:white;
+    stroke-linecap:round;
+    transition:0.5s;
+}
+
+.center{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+</style>
+</head>
+
+<body>
+
+<button class="toggle" onclick="toggleDark()">🌙 Toggle Mode</button>
+
+<h1>🌿 MindCare Pro+</h1>
+<p>Your Emotional Analytics Dashboard</p>
+
+<div class="dashboard">
+
+<!-- MOOD -->
+<div class="container">
+<h3>How are you feeling?</h3>
+<button onclick="logMood('Happy')">😊</button>
+<button onclick="logMood('Sad')">😔</button>
+<button onclick="logMood('Angry')">😡</button>
+<button onclick="logMood('Anxious')">😰</button>
+<div id="tip"></div>
+</div>
+
+<!-- CIRCLE -->
+<div class="container center">
+<h3>Today's Emotional Score</h3>
+<svg class="progress-ring" width="150" height="150">
+<circle class="bg" cx="75" cy="75" r="60"></circle>
+<circle class="progress" cx="75" cy="75" r="60"
+stroke-dasharray="377"
+stroke-dashoffset="377"
+id="progressCircle"></circle>
+</svg>
+<h2 id="percentText">0%</h2>
+<div id="moodLabel"></div>
+</div>
+
+<!-- LINE GRAPH -->
+<div class="container">
+<h3>Mood Timeline</h3>
+<canvas id="lineChart"></canvas>
+</div>
+
+<!-- PIE -->
+<div class="container">
+<h3>Today's Mood Distribution</h3>
+<canvas id="pieChart"></canvas>
+</div>
+
+<!-- JOURNAL -->
+<div class="container">
+<h3>Anonymous Journal</h3>
+<textarea id="journal"></textarea><br>
+<button onclick="saveJournal()">Save Entry</button>
+<div id="journalHistory"></div>
+</div>
+
+<!-- EXERCISE -->
+<div class="container">
+<h3>Mood-Based Exercise</h3>
+<div id="exercise"></div>
+</div>
+
+<!-- BREATHING -->
+<div class="container">
+<h3>Breathing Exercise</h3>
+<div id="timer">60</div>
+<button onclick="startTimer()">Start</button>
+</div>
+
+<!-- AFFIRMATION -->
+<div class="container">
+<h3>Daily Affirmation</h3>
+<div id="affirmation"></div>
+<button onclick="newAffirmation()">New</button>
+</div>
+
+<!-- RESET -->
+<div class="container">
+<button onclick="resetAll()">🔄 Reset All Data</button>
+</div>
+
+</div>
+
+<script>
+
+const moodScore={Happy:1,Sad:-1,Angry:-0.8,Anxious:-0.5};
+
+const moodTips={
+Happy:"Keep spreading positivity 🌟",
+Sad:"Take rest and be kind to yourself.",
+Angry:"Pause and breathe before reacting.",
+Anxious:"Try grounding: 5-4-3-2-1 method."
+};
+
+const exercises={
+Happy:"Share gratitude with someone.",
+Sad:"Write 3 things you're thankful for.",
+Angry:"Do 10 slow deep breaths.",
+Anxious:"Try 4-4-4 breathing technique."
+};
+
+const affirmations=[
+"You are stronger than you think.",
+"This feeling will pass.",
+"You matter.",
+"Small progress is still progress.",
+"Your effort is enough."
+];
+
+function logMood(type){
+let moods=JSON.parse(localStorage.getItem("moods"))||[];
+moods.push({mood:type,time:new Date().toLocaleDateString()});
+localStorage.setItem("moods",JSON.stringify(moods));
+
+document.getElementById("tip").innerText=moodTips[type];
+document.getElementById("exercise").innerText=exercises[type];
+
+updateAll();
+}
+
+function saveJournal(){
+let text=document.getElementById("journal").value.trim();
+if(text==="")return;
+
+let journals=JSON.parse(localStorage.getItem("journals"))||[];
+journals.push({entry:text,time:new Date().toLocaleString()});
+localStorage.setItem("journals",JSON.stringify(journals));
+
+displayJournals();
+updateAll();
+}
+
+function displayJournals(){
+let journals=JSON.parse(localStorage.getItem("journals"))||[];
+let div=document.getElementById("journalHistory");
+div.innerHTML="";
+journals.slice(-3).reverse().forEach(j=>{
+div.innerHTML+=`<p><b>${j.time}</b><br>${j.entry}</p><hr>`;
+});
+}
+
+displayJournals();
+
+let lineChart=new Chart(document.getElementById("lineChart"),{
+type:"line",
+data:{labels:[],datasets:[{label:"Mood Score",data:[],borderColor:"white"}]}
+});
+
+let pieChart=new Chart(document.getElementById("pieChart"),{
+type:"pie",
+data:{labels:["Happy","Sad","Angry","Anxious"],datasets:[{data:[0,0,0,0]}]}
+});
+
+function updateAll(){
+let moods=JSON.parse(localStorage.getItem("moods"))||[];
+let today=new Date().toLocaleDateString();
+
+lineChart.data.labels=moods.map(m=>m.time);
+lineChart.data.datasets[0].data=moods.map(m=>moodScore[m.mood]);
+lineChart.update();
+
+let count={Happy:0,Sad:0,Angry:0,Anxious:0};
+let score=0,total=0;
+
+moods.filter(m=>m.time===today).forEach(m=>{
+count[m.mood]++;
+score+=moodScore[m.mood];
+total++;
+});
+
+pieChart.data.datasets[0].data=[count.Happy,count.Sad,count.Angry,count.Anxious];
+pieChart.update();
+
+let percent=total?Math.round(((score/total)+1)/2*100):0;
+updateCircle(percent);
+
+let label=percent>70?"Mostly Positive 🌟":
+percent>40?"Balanced 🙂":"Challenging 💙";
+
+document.getElementById("moodLabel").innerText=label;
+}
+
+function updateCircle(percent){
+let circle=document.getElementById("progressCircle");
+let text=document.getElementById("percentText");
+
+let circumference=377;
+let offset=circumference-(percent/100)*circumference;
+circle.style.strokeDashoffset=offset;
+text.innerText=percent+"%";
+}
+
+let countdown;
+function startTimer(){
+let time=60;
+clearInterval(countdown);
+countdown=setInterval(()=>{
+time--;
+document.getElementById("timer").innerText=time;
+if(time<=0){
+clearInterval(countdown);
+document.getElementById("timer").innerText="Calm ✨";
+}
+},1000);
+}
+
+function newAffirmation(){
+document.getElementById("affirmation").innerText=
+affirmations[Math.floor(Math.random()*affirmations.length)];
+}
+
+newAffirmation();
+updateAll();
+
+function toggleDark(){
+document.body.classList.toggle("dark");
+}
+
+function resetAll(){
+localStorage.clear();
+location.reload();
+}
+
+</script>
+
+</body>
+</html>
